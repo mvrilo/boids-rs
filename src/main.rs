@@ -1,15 +1,18 @@
+mod boids;
+
+use crate::boids::*;
+
 use quicksilver::{
     geom::Vector,
     graphics::{Color, Image},
     run, Graphics, Input, Result, Settings, Window,
 };
 
-use boids::boids::Flock;
-
 const WINDOW_SIZE: Vector = Vector { x: 800.0, y: 500.0 };
-const MAX_BOIDS: u32 = 5;
 
 async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> {
+    const MAX_BOIDS: u32 = 100;
+
     let img = Image::load(&gfx, "boid.png").await?;
     let img_size = img.size();
 
@@ -27,6 +30,7 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
 
             b.detect_edges(area);
             b.movement();
+            // b.calculate(boids.clone());
             b.draw(&img, &mut gfx);
 
             new_boids.push(b);

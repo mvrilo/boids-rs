@@ -2,7 +2,7 @@
 
 A work in progress [Boids simulation](http://www.red3d.com/cwr/boids/) built with [Rust](https://www.rust-lang.org/) and [Quicksilver](https://ryanisaacg.com/quicksilver/).
 
-![Example](assets/example.png)
+![Example](static/example.png)
 
 ## Usage
 

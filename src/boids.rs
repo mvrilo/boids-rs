@@ -1,7 +1,11 @@
-use quicksilver::{geom::Rectangle, graphics::Image, Graphics};
-
-use quicksilver::geom::Vector;
+use quicksilver::{
+    geom::{Rectangle, Vector},
+    graphics::Image,
+    Graphics,
+};
 use rand::Rng;
+
+const SPEED: f32 = 1.0;
 
 #[derive(Copy, Clone)]
 pub struct Boid {
@@ -15,17 +19,21 @@ pub struct Boid {
 
 impl Boid {
     pub fn new(pos: Vector) -> Boid {
+        let rand: f32 = rand::thread_rng().gen();
+        let rand_angle = rand * 360.0;
+        let velocity = Vector::from_angle(rand_angle).normalize() * SPEED;
+
         Boid {
             id: rand::thread_rng().gen(),
             position: pos,
             acceleration: Vector::ZERO,
-            velocity: Vector::new(2.0, 2.0),
+            velocity: velocity,
             max_force: 1.0,
-            max_speed: 10.0,
+            max_speed: 4.0,
         }
     }
 
-    pub fn detect_edges(&mut self, area: Vector) {
+    pub fn edges(&mut self, area: Vector) {
         let mut pos = self.position;
 
         if pos.x < 0.0 {
@@ -45,9 +53,15 @@ impl Boid {
         self.position = pos;
     }
 
-    pub fn movement(&mut self) {
-        self.position += self.velocity;
-        self.position += self.acceleration;
+    pub fn fly(&mut self) {
+        self.position += self.velocity * SPEED;
+        self.velocity += self.acceleration;
+        self.acceleration = Vector::ZERO;
+    }
+
+    pub fn update(&mut self, area: Vector, _boids: Vec<Boid>) {
+        self.fly();
+        self.edges(area);
     }
 
     pub fn draw(&self, img: &Image, gfx: &mut Graphics) {
@@ -69,9 +83,9 @@ impl Flock {
 
         let mut flock = Flock {
             area: area,
-            max_boids: max_boids,
             boids: boids,
             img_size: img_size,
+            max_boids: max_boids,
         };
 
         for _ in 0..max_boids {

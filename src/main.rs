@@ -13,12 +13,11 @@ const WINDOW_SIZE: Vector = Vector { x: 800.0, y: 500.0 };
 async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> {
     const MAX_BOIDS: u32 = 100;
 
-    let img = Image::load(&gfx, "boid.png").await?;
+    let img = Image::load(&gfx, "assets/boid.png").await?;
     let img_size = img.size();
 
     let flock = Flock::new(MAX_BOIDS, WINDOW_SIZE, img_size);
     let mut boids = flock.boids;
-    let area = flock.area;
 
     loop {
         while let Some(_) = input.next_event().await {}
@@ -28,9 +27,7 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
         for boid in boids.iter() {
             let mut b = *boid;
 
-            b.detect_edges(area);
-            b.movement();
-            // b.calculate(boids.clone());
+            b.update(flock.area, boids.clone());
             b.draw(&img, &mut gfx);
 
             new_boids.push(b);

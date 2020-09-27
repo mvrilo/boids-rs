@@ -1,10 +1,11 @@
-mod boids;
+extern crate quicksilver;
 
-use crate::boids::*;
+use boids::boids::*;
 
 use quicksilver::{
     geom::Vector,
     graphics::{Color, Image},
+    input::{Event, Key},
     run, Graphics, Input, Result, Settings, Window,
 };
 
@@ -18,22 +19,29 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
 
     let flock = Flock::new(MAX_BOIDS, WINDOW_SIZE, img_size);
     let mut boids = flock.boids;
+    let area = flock.area;
 
     loop {
-        while let Some(_) = input.next_event().await {}
-        gfx.clear(Color::WHITE);
-
-        let mut new_boids = Vec::new();
-        for boid in boids.iter() {
-            let mut b = *boid;
-
-            b.update(flock.area, boids.clone());
-            b.draw(&img, &mut gfx);
-
-            new_boids.push(b);
+        if let Some(ev) = input.next_event().await {
+            if let Event::KeyboardInput(key_event) = &ev {
+                if key_event.key() == Key::Escape && key_event.is_down() {
+                    return Ok(());
+                }
+            }
         }
 
-        boids = new_boids;
+        gfx.clear(Color::WHITE);
+
+        boids = boids
+            .iter()
+            .map(|boid| *boid)
+            .map(|mut boid| {
+                boid.update(area, boids.clone());
+                boid.draw(&img, &mut gfx);
+                return boid;
+            })
+            .collect();
+
         gfx.present(&window)?;
     }
 }

@@ -3,6 +3,7 @@ use quicksilver::{
     graphics::Image,
     Graphics,
 };
+
 use rand::Rng;
 
 const SPEED: f32 = 1.0;
@@ -20,8 +21,7 @@ pub struct Boid {
 impl Boid {
     pub fn new(pos: Vector) -> Boid {
         let rand: f32 = rand::thread_rng().gen();
-        let rand_angle = rand * 360.0;
-        let velocity = Vector::from_angle(rand_angle).normalize() * SPEED;
+        let velocity = Vector::from_angle(rand * 360.0).normalize() * SPEED;
 
         Boid {
             id: rand::thread_rng().gen(),

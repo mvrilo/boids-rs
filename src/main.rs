@@ -1,7 +1,6 @@
 extern crate quicksilver;
 
 use boids::boids::*;
-
 use quicksilver::{
     geom::Vector,
     graphics::{Color, Image},
@@ -49,8 +48,7 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
 #[allow(unused_variables)]
 fn main() {
     let settings = Settings {
-        title: "Boids simulation",
-        resizable: true,
+        title: "Boids Simulation",
         size: WINDOW_SIZE,
         ..Settings::default()
     };

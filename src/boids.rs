@@ -3,10 +3,16 @@ use quicksilver::{
     graphics::Image,
     Graphics,
 };
-
 use rand::Rng;
 
-const SPEED: f32 = 1.0;
+const MAX_FORCE: f32 = 1.1;
+const MAX_SPEED: f32 = 4.0;
+
+const ALIGN_AREA: f32 = 95.0;
+const COHESION_AREA: f32 = 90.0;
+const SEPARATION_AREA: f32 = 50.0;
+
+const NEARBY_RADIUS: f32 = 40.0;
 
 #[derive(Copy, Clone)]
 pub struct Boid {
@@ -19,18 +25,32 @@ pub struct Boid {
 }
 
 impl Boid {
-    pub fn new(pos: Vector) -> Boid {
+    pub fn new(pos: Vector) -> Self {
         let rand: f32 = rand::thread_rng().gen();
-        let velocity = Vector::from_angle(rand * 360.0).normalize() * SPEED;
+        let velocity = Vector::from_angle(rand * 360.0);
 
-        Boid {
+        Self {
             id: rand::thread_rng().gen(),
             position: pos,
             acceleration: Vector::ZERO,
             velocity: velocity,
-            max_force: 1.0,
-            max_speed: 4.0,
+            max_force: MAX_FORCE,
+            max_speed: MAX_SPEED,
         }
+    }
+
+    pub fn distance(&mut self, boid: &Boid) -> f32 {
+        self.position.distance(boid.position)
+    }
+
+    pub fn nearby(&mut self, radius: f32, boids: Vec<Boid>) -> Vec<Boid> {
+        let id = self.id;
+        boids
+            .iter()
+            .filter(|boid| id != boid.id)
+            .filter(|boid| self.distance(boid) < radius)
+            .map(|boid| *boid)
+            .collect()
     }
 
     pub fn edges(&mut self, area: Vector) {
@@ -54,14 +74,83 @@ impl Boid {
     }
 
     pub fn fly(&mut self) {
-        self.position += self.velocity * SPEED;
+        self.position += self.velocity;
         self.velocity += self.acceleration;
         self.acceleration = Vector::ZERO;
     }
 
-    pub fn update(&mut self, area: Vector, _boids: Vec<Boid>) {
-        self.fly();
+    pub fn behave(&mut self, boids: Vec<Boid>) {
+        let (mut align_count, mut align) = (0, Vector::ZERO);
+        let (mut cohesion_count, mut cohesion) = (0, Vector::ZERO);
+        let (mut separation_count, mut separation) = (0, Vector::ZERO);
+
+        self.nearby(NEARBY_RADIUS, boids).iter().for_each(|boid| {
+            let dist = self.distance(boid);
+            if dist < ALIGN_AREA {
+                align += boid.velocity;
+                align_count += 1;
+            }
+            if dist < COHESION_AREA {
+                cohesion += boid.position;
+                cohesion_count += 1;
+            }
+            if dist < SEPARATION_AREA {
+                let mut pos = self.position;
+                pos -= boid.position;
+                pos /= dist;
+                separation += pos;
+                separation_count += 1;
+            }
+        });
+
+        let mut rules: Vec<Vector> = Vec::new();
+
+        if align_count > 0 {
+            align /= align_count as f32;
+            align = align.normalize();
+            align *= self.max_speed * 0.8;
+            align -= self.velocity;
+
+            let len = align.len();
+            if len > self.max_force {
+                align /= len;
+                align *= self.max_force;
+            }
+            rules.push(align);
+        }
+
+        if cohesion_count > 0 {
+            cohesion /= cohesion_count as f32;
+            cohesion -= self.position;
+            cohesion = cohesion.normalize();
+            cohesion *= self.max_speed;
+            cohesion -= self.velocity;
+            cohesion = cohesion.normalize();
+            cohesion *= self.max_force;
+            rules.push(cohesion);
+        }
+
+        if separation_count > 0 {
+            separation /= separation_count as f32;
+            separation = separation.normalize();
+            separation *= self.max_speed;
+            separation -= self.velocity;
+            separation = separation.normalize();
+            separation *= self.max_force;
+            rules.push(separation);
+        }
+
+        let rules_count = rules.len();
+        if rules_count > 0 {
+            rules.iter().for_each(|acc| self.acceleration += *acc);
+            self.acceleration /= rules_count as f32;
+        }
+    }
+
+    pub fn update(&mut self, area: Vector, boids: Vec<Boid>) {
         self.edges(area);
+        self.behave(boids);
+        self.fly();
     }
 
     pub fn draw(&self, img: &Image, gfx: &mut Graphics) {
